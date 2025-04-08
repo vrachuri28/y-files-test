@@ -1,0 +1,22 @@
+{
+  "name": "large-graphs",
+  "version": "1.0.0",
+  "author": "yWorks GmbH <yfileshtml@yworks.com>",
+  "license": "https://www.yworks.com/products/yfiles-for-html/sla",
+  "private": true,
+  "scripts": {
+    "build": "node --max_old_space_size=8000 node_modules/vite/bin/vite build",
+    "start": "vite"
+  },
+  "dependencies": {
+    "@yfiles/demo-resources": "C:\\Users\\VRC\\Desktop\\yFiles-for-HTML-Complete-3.0-Evaluation\\demos-js\\resources",
+    "@yfiles/yfiles": "C:\\Users\\VRC\\Desktop\\yFiles-for-HTML-Complete-3.0-Evaluation\\lib\\yfiles-30.0.0+eval-dev.tgz"
+  },
+  "devDependencies": {
+    "@yworks/optimizer": "^1.8.1",
+    "eslint": "^8.44.0",
+    "eslint-config-prettier": "^8.8.0",
+    "prettier": "^3.0.3",
+    "vite": "^4.3.9"
+  }
+}

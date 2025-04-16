@@ -261,9 +261,13 @@ class LargeGraphDemoConfiguration extends DemoConfiguration {
 }
 
 export class HierarchicalDemoConfiguration extends LargeGraphDemoConfiguration {
-  graphResourcePath = 'resources/hierarchic-10000-11000-circles.json'
-}
+  constructor(resourcePath = 'resources/hierarchic-2000.json') {
+    super()
+    this.graphResourcePath = resourcePath
+  }
 
-export class OrganicDemoConfiguration extends LargeGraphDemoConfiguration {
-  graphResourcePath = 'resources/radial_tree_10000_9999.json'
+  async loadGraphData() {
+    const response = await fetch(this.graphResourcePath)
+    return await response.json()
+  }
 }

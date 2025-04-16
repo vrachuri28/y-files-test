@@ -24,7 +24,6 @@ import {
 } from '@yfiles/demo-resources/demo-page'
 import { initDemoStyles } from '@yfiles/demo-resources/demo-styles'
 
-
 let renderingTypesManager = null
 
 async function run() {
@@ -52,12 +51,13 @@ async function run() {
 
   configureInteraction(graphComponent)
 
-  initToolbar(graphComponent) 
+  initToolbar(graphComponent)
 
   initGraphInformationUI(graphComponent)
 }
 
 async function loadGraph(graphComponent, config) {
+  const startTime = performance.now()
   const graph = graphComponent.graph
   if (renderingTypesManager) {
     renderingTypesManager.dispose()
@@ -91,7 +91,10 @@ async function loadGraph(graphComponent, config) {
   masterGraph.undoEngineEnabled = true
   if (masterGraph.undoEngine) {
     masterGraph.undoEngine.clear()
-  }  initRenderingInformationUI(graphComponent)
+  }
+  initRenderingInformationUI(graphComponent)
+  const endTime = performance.now()
+  console.log(`⏱️ Graph rendered in ${(endTime - startTime).toFixed(2)} ms`)
 }
 
 function configureInteraction(graphComponent) {
@@ -103,7 +106,7 @@ function configureInteraction(graphComponent) {
     allowAdjustGroupNodeSize: true,
     allowReparentToNonGroupNodes: true
   })
-  
+
   graphEditorInputMode.navigationInputMode.allowCollapseGroup = true
   graphEditorInputMode.navigationInputMode.allowExpandGroup = true
   graphEditorInputMode.itemHoverInputMode.hoverItems = GraphItemTypes.NODE
@@ -175,21 +178,17 @@ function updateRenderingInformationUI(graphComponent) {
   document.querySelector('#renderType').textContent = renderingTypesManager.currentRenderingType
 }
 
-function setUIDisabled(disabled) {
-  const popup = document.querySelector('#loadingPopup')
-  popup.className = disabled ? 'visible' : ''
-  document.querySelector('#sampleSelection').disabled = disabled
-  document.querySelector('#svgThreshold').disabled = disabled
-  return new Promise((resolve) => setTimeout(resolve, 0))
-}
-
 function initToolbar(graphComponent) {
   const sampleSelect = document.querySelector('#sampleSelection')
 
-  addOptions(sampleSelect, 'Hierarchical')
-  sampleSelect.value = 'Hierarchical'
-  sampleSelect.disabled = true
-
+  addOptions(
+    sampleSelect,
+    { text: 'Hierarchical:2000 nodes', value: 'hierarchical-2000' },
+    { text: 'Hierarchical:5000 nodes', value: 'hierarchical-5000' },
+    { text: 'Hierarchical:10000 nodes', value: 'hierarchical-10000' }
+  )
+  sampleSelect.value = 'hierarchical-2000'
+  sampleSelect.disabled = false
   document.querySelector('#sampleName').innerText = 'Hierarchical'
 
   const hierarchicalOrganicDescription = document.querySelector('#hierarchicalOrganic')
@@ -197,7 +196,6 @@ function initToolbar(graphComponent) {
   hierarchicalOrganicDescription.style.display = 'block'
   orgChartDescription.style.display = 'none'
 
-  const config = new HierarchicalDemoConfiguration()
   const foldingManager = new FoldingManager()
   initDemoStyles(foldingManager.masterGraph, { foldingEnabled: true })
   foldingManager.folderNodeConverter = new FolderNodeConverter({
@@ -206,20 +204,31 @@ function initToolbar(graphComponent) {
       size: new Size(110, 60)
     }
   })
-  const foldingView = foldingManager.createFoldingView()
-  graphComponent.graph = foldingView.graph
 
-  const inputMode = graphComponent.inputMode
-
-  inputMode.allowCollapseGroup = true
-  inputMode.allowExpandGroup = true
-  config.foldingManager = foldingManager
-
-  loadGraph(graphComponent, config).then(() => {
+  async function loadSelectedConfig(value) {
+    let configPath = 'resources/hierarchic-2000.json'
+    switch (value) {
+      case 'hierarchical-5000':
+        configPath = 'resources/hierarchic-5000.json'
+        break
+      case 'hierarchical-10000':
+        configPath = 'resources/hierarchic-10000-11000-circles.json'
+        break
+    }
+    const config = new HierarchicalDemoConfiguration(configPath)
+    config.foldingManager = foldingManager
+    await loadGraph(graphComponent, config)
     config.registerNodeTooltips(graphComponent)
     updateGraphInformation(graphComponent.graph)
-    setUIDisabled(false)
-  })
+  }
+
+  loadSelectedConfig('hierarchical-2000')
+
+  sampleSelect.addEventListener('change', async (e) => {
+    const selected = e.target.value
+    document.querySelector('#sampleName').innerText = e.target.options[e.target.selectedIndex].text
+=    await loadSelectedConfig(selected)
+   })
 
   const svgThresholdSelect = document.querySelector('#svgThreshold')
   addOptions(
@@ -236,7 +245,6 @@ function initToolbar(graphComponent) {
     updateRenderingInformationUI(graphComponent)
   })
 
-  // Add nav buttons
   addNavigationButtons(sampleSelect)
   addNavigationButtons(svgThresholdSelect, false)
 }

@@ -261,7 +261,7 @@ class LargeGraphDemoConfiguration extends DemoConfiguration {
 }
 
 export class HierarchicalDemoConfiguration extends LargeGraphDemoConfiguration {
-  constructor(resourcePath = 'resources/hierarchic-2000.json') {
+  constructor(resourcePath = 'resources/hierarchic-5000.json') {
     super()
     this.graphResourcePath = resourcePath
   }

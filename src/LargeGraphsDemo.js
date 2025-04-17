@@ -187,7 +187,7 @@ function initToolbar(graphComponent) {
     { text: 'Hierarchical:5000 nodes', value: 'hierarchical-5000' },
     { text: 'Hierarchical:10000 nodes', value: 'hierarchical-10000' }
   )
-  sampleSelect.value = 'hierarchical-2000'
+  sampleSelect.value = 'hierarchical-5000'
   sampleSelect.disabled = false
   document.querySelector('#sampleName').innerText = 'Hierarchical'
 
@@ -206,10 +206,10 @@ function initToolbar(graphComponent) {
   })
 
   async function loadSelectedConfig(value) {
-    let configPath = 'resources/hierarchic-2000.json'
+    let configPath = 'resources/hierarchic-5000.json'
     switch (value) {
-      case 'hierarchical-5000':
-        configPath = 'resources/hierarchic-5000.json'
+      case 'hierarchical-2000':
+        configPath = 'resources/hierarchic-2000.json'
         break
       case 'hierarchical-10000':
         configPath = 'resources/hierarchic-10000-11000-circles.json'
@@ -222,12 +222,12 @@ function initToolbar(graphComponent) {
     updateGraphInformation(graphComponent.graph)
   }
 
-  loadSelectedConfig('hierarchical-2000')
+  loadSelectedConfig('hierarchical-5000')
 
   sampleSelect.addEventListener('change', async (e) => {
     const selected = e.target.value
     document.querySelector('#sampleName').innerText = e.target.options[e.target.selectedIndex].text
-=    await loadSelectedConfig(selected)
+    await loadSelectedConfig(selected)
    })
 
   const svgThresholdSelect = document.querySelector('#svgThreshold')

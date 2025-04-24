@@ -1,12 +1,8 @@
 import {
-  EventRecognizers,
   GraphComponent,
-  GraphEditorInputMode,
-  HandlePositions,
-  IReshapeHandler,
-  License,
-  NodeReshapeHandleProvider,
+  GraphViewerInputMode,
   GraphItemTypes,
+  License,
   FoldingManager,
   FolderNodeConverter,
   Size
@@ -49,7 +45,7 @@ async function run() {
 
   const graphComponent = new GraphComponent('#graphComponent')
 
-  configureInteraction(graphComponent)
+  configureReadOnlyInteraction(graphComponent)
 
   initToolbar(graphComponent)
 
@@ -63,10 +59,12 @@ async function loadGraph(graphComponent, config) {
     renderingTypesManager.dispose()
     graph.clear()
   }
+
   const foldingView = config.foldingManager?.createFoldingView?.()
   if (foldingView) {
     graphComponent.graph = foldingView.graph
   }
+
   await config.initializeStyleDefaults(graph)
 
   const svgThresholdSelect = document.querySelector('#svgThreshold')
@@ -85,35 +83,43 @@ async function loadGraph(graphComponent, config) {
 
   await config.loadGraph(graphComponent)
   void graphComponent.fitGraphBounds()
-  renderingTypesManager.registerZoomChangedListener()
+ renderingTypesManager.registerZoomChangedListener()
   renderingTypesManager.registerItemCreatedListeners()
+
   const masterGraph = config.foldingManager?.masterGraph || graph
   masterGraph.undoEngineEnabled = true
   if (masterGraph.undoEngine) {
     masterGraph.undoEngine.clear()
   }
+
   initRenderingInformationUI(graphComponent)
+
   const endTime = performance.now()
   console.log(`⏱️ Graph rendered in ${(endTime - startTime).toFixed(2)} ms`)
 }
 
-function configureInteraction(graphComponent) {
-  const graphEditorInputMode = new GraphEditorInputMode({
-    allowGroupingOperations: true,
-    allowGroupSelection: true,
-    allowUngroupSelection: true,
-    allowReparentNodes: true,
-    allowAdjustGroupNodeSize: true,
-    allowReparentToNonGroupNodes: true
+function configureReadOnlyInteraction(graphComponent) {
+  const viewerInputMode = new GraphViewerInputMode({
+    clickableItems: GraphItemTypes.NODE,
+    focusableItems: GraphItemTypes.NONE,
+    selectableItems: GraphItemTypes.NODE,
+    marqueeSelectableItems: GraphItemTypes.NONE,
+    contextMenuItems: GraphItemTypes.NONE,
+    toolTipItems: GraphItemTypes.NODE
   })
 
-  graphEditorInputMode.navigationInputMode.allowCollapseGroup = true
-  graphEditorInputMode.navigationInputMode.allowExpandGroup = true
-  graphEditorInputMode.itemHoverInputMode.hoverItems = GraphItemTypes.NODE
-  graphEditorInputMode.itemHoverInputMode.hoverEnabled = true
-  graphEditorInputMode.itemHoverInputMode.toolTipLocationOffset = { x: 15, y: 15 }
+  // ✅ Enable expand/collapse on group nodes
+  viewerInputMode.navigationInputMode.allowExpandGroup = true
+  viewerInputMode.navigationInputMode.allowCollapseGroup = true
 
-  graphEditorInputMode.addEventListener('query-item-tool-tip', (eventArgs) => {
+  // Tooltip support
+  viewerInputMode.itemHoverInputMode.hoverItems = GraphItemTypes.NODE
+  viewerInputMode.itemHoverInputMode.hoverEnabled = true
+  viewerInputMode.itemHoverInputMode.toolTipLocationOffset = { x: 15, y: 15 }
+
+  viewerInputMode.navigationInputMode.allowZoom = true;
+
+  viewerInputMode.addEventListener('query-item-tool-tip', (eventArgs) => {
     if (eventArgs.handled) return
     const item = eventArgs.item
     if (item && item.tag && typeof item.tag.id !== 'undefined') {
@@ -123,28 +129,9 @@ function configureInteraction(graphComponent) {
     }
   })
 
-  graphComponent.inputMode = graphEditorInputMode
-
-  graphComponent.graph.decorator.edges.positionHandler.hide()
-  graphComponent.graph.decorator.nodes.reshapeHandleProvider.addFactory((node) => {
-    const keepAspectRatio = new NodeReshapeHandleProvider(
-      node,
-      node.lookup(IReshapeHandler),
-      HandlePositions.BORDER
-    )
-    keepAspectRatio.ratioReshapeRecognizer = EventRecognizers.ALWAYS
-    return keepAspectRatio
-  })
+  graphComponent.inputMode = viewerInputMode
 }
-
 function initGraphInformationUI(graphComponent) {
-  const inputMode = graphComponent.inputMode
-  const updateGraphInformationListener = () => {
-    updateGraphInformation(graphComponent.graph)
-  }
-  inputMode.addEventListener('node-created', updateGraphInformationListener)
-  inputMode.createEdgeInputMode.addEventListener('edge-created', updateGraphInformationListener)
-  inputMode.addEventListener('deleted-item', updateGraphInformationListener)
   updateGraphInformation(graphComponent.graph)
 }
 
@@ -157,7 +144,9 @@ function initRenderingInformationUI(graphComponent) {
   graphComponent.addEventListener('zoom-changed', (_, graphComponent) => {
     updateRenderingInformationUI(graphComponent)
   })
+
   updateRenderingInformationUI(graphComponent)
+
   renderingTypesManager.setRenderingTypeChangedListener((newMode) => {
     const thresholdPercent = Math.floor(renderingTypesManager.svgThreshold * 100)
     const renderingInfoPopup = document.querySelector('#renderingInfoPopup')
@@ -187,6 +176,7 @@ function initToolbar(graphComponent) {
     { text: 'Hierarchical:5000 nodes', value: 'hierarchical-5000' },
     { text: 'Hierarchical:10000 nodes', value: 'hierarchical-10000' }
   )
+
   sampleSelect.value = 'hierarchical-5000'
   sampleSelect.disabled = false
   document.querySelector('#sampleName').innerText = 'Hierarchical'
@@ -218,6 +208,11 @@ function initToolbar(graphComponent) {
     const config = new HierarchicalDemoConfiguration(configPath)
     config.foldingManager = foldingManager
     await loadGraph(graphComponent, config)
+    config.registerZoomStyleSwitcher(graphComponent)
+    config.initializeGraph(graphComponent)
+    graphComponent.zoom = 2
+    graphComponent.zoom = 1
+
     config.registerNodeTooltips(graphComponent)
     updateGraphInformation(graphComponent.graph)
   }
@@ -228,7 +223,7 @@ function initToolbar(graphComponent) {
     const selected = e.target.value
     document.querySelector('#sampleName').innerText = e.target.options[e.target.selectedIndex].text
     await loadSelectedConfig(selected)
-   })
+  })
 
   const svgThresholdSelect = document.querySelector('#svgThreshold')
   addOptions(
@@ -238,6 +233,7 @@ function initToolbar(graphComponent) {
     { text: '≥ 100%', value: '1.0' },
     { text: 'WebGL only', value: '-1' }
   )
+
   svgThresholdSelect.addEventListener('change', (e) => {
     const selectElement = e.target
     const newThreshold = Number(selectElement.value)

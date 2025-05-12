@@ -5,7 +5,8 @@ import {
   License,
   FoldingManager,
   FolderNodeConverter,
-  Size
+  Size,
+  INode,
 } from '@yfiles/yfiles'
 
 import RenderingTypesManager from './RenderingTypesManager'
@@ -104,32 +105,51 @@ function configureReadOnlyInteraction(graphComponent) {
     focusableItems: GraphItemTypes.NONE,
     selectableItems: GraphItemTypes.NODE,
     marqueeSelectableItems: GraphItemTypes.NONE,
-    contextMenuItems: GraphItemTypes.NONE,
+    contextMenuItems: GraphItemTypes.NODE,
     toolTipItems: GraphItemTypes.NODE
-  })
+  });
 
-  // ✅ Enable expand/collapse on group nodes
-  viewerInputMode.navigationInputMode.allowExpandGroup = true
-  viewerInputMode.navigationInputMode.allowCollapseGroup = true
+  viewerInputMode.navigationInputMode.allowExpandGroup = true;
+  viewerInputMode.navigationInputMode.allowCollapseGroup = true;
 
-  // Tooltip support
-  viewerInputMode.itemHoverInputMode.hoverItems = GraphItemTypes.NODE
-  viewerInputMode.itemHoverInputMode.hoverEnabled = true
-  viewerInputMode.itemHoverInputMode.toolTipLocationOffset = { x: 15, y: 15 }
+  viewerInputMode.itemHoverInputMode.hoverItems = GraphItemTypes.NODE;
+  viewerInputMode.itemHoverInputMode.hoverEnabled = true;
+  viewerInputMode.itemHoverInputMode.toolTipLocationOffset = { x: 15, y: 15 };
 
   viewerInputMode.navigationInputMode.allowZoom = true;
 
-  viewerInputMode.addEventListener('query-item-tool-tip', (eventArgs) => {
-    if (eventArgs.handled) return
-    const item = eventArgs.item
-    if (item && item.tag && typeof item.tag.id !== 'undefined') {
-      const { id, status } = item.tag
-      eventArgs.toolTip = `Job ID: ${id} | Status: ${status}`
-      eventArgs.handled = true
+  viewerInputMode.addEventListener('populate-item-context-menu', (evt) => {
+    if (evt.item instanceof INode) {
+      evt.contextMenu = [
+        {
+          label: 'ID',
+          action: () => {
+            console.log('Current Node Id', evt.item.tag.id);
+          }
+        },
+        {
+          label: 'Status',
+          action: () => {
+            console.log('Current Node Status', evt.item.tag.status);
+          }
+        }
+      ];
+      evt.handled = true;
     }
-  })
+  });
 
-  graphComponent.inputMode = viewerInputMode
+  // Handle tooltips
+  viewerInputMode.addEventListener('query-item-tool-tip', (evt) => {
+    if (evt.handled) return;
+    const item = evt.item;
+    if (item && item.tag && typeof item.tag.id !== 'undefined') {
+      const { id, status } = item.tag;
+      evt.toolTip = `Job ID: ${id} | Status: ${status}`;
+      evt.handled = true;
+    }
+  });
+
+  graphComponent.inputMode = viewerInputMode;
 }
 function initGraphInformationUI(graphComponent) {
   updateGraphInformation(graphComponent.graph)
@@ -174,10 +194,13 @@ function initToolbar(graphComponent) {
     sampleSelect,
     { text: 'Hierarchical:2000 nodes', value: 'hierarchical-2000' },
     { text: 'Hierarchical:5000 nodes', value: 'hierarchical-5000' },
-    { text: 'Hierarchical:10000 nodes', value: 'hierarchical-10000' }
+    { text: 'Hierarchical:10000 nodes', value: 'hierarchical-10000' },
+    { text: 'Hierarchical:20000 nodes', value: 'hierarchical-20000' },
+    { text: 'Hierarchical:50000 nodes', value: 'hierarchical-50000' }
+
   )
 
-  sampleSelect.value = 'hierarchical-5000'
+  sampleSelect.value = 'hierarchical-10000'
   sampleSelect.disabled = false
   document.querySelector('#sampleName').innerText = 'Hierarchical'
 
@@ -196,28 +219,32 @@ function initToolbar(graphComponent) {
   })
 
   async function loadSelectedConfig(value) {
-    let configPath = 'resources/hierarchic-5000.json'
+    let configPath = 'resources/hierarchic-50000.json'
     switch (value) {
       case 'hierarchical-2000':
         configPath = 'resources/hierarchic-2000.json'
         break
+      case 'hierarchical-5000':
+        configPath = 'resources/hierarchic-5000.json'
+        break
       case 'hierarchical-10000':
         configPath = 'resources/hierarchic-10000-11000-circles.json'
         break
-    }
+      case 'hierarchical-20000':
+        configPath = 'resources/hierarchic-20000.json'
+        break
+      }
     const config = new HierarchicalDemoConfiguration(configPath)
     config.foldingManager = foldingManager
     await loadGraph(graphComponent, config)
     config.registerZoomStyleSwitcher(graphComponent)
     config.initializeGraph(graphComponent)
-    graphComponent.zoom = 2
-    graphComponent.zoom = 1
 
     config.registerNodeTooltips(graphComponent)
     updateGraphInformation(graphComponent.graph)
   }
 
-  loadSelectedConfig('hierarchical-5000')
+  loadSelectedConfig('hierarchical-10000')
 
   sampleSelect.addEventListener('change', async (e) => {
     const selected = e.target.value

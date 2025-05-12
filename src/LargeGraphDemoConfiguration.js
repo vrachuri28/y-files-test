@@ -227,7 +227,6 @@ class LargeGraphDemoConfiguration extends DemoConfiguration {
       })
     }
   
-    // For higher zoom levels, use the detailed LitNodeStyle
     return new WebGLNodeStyleDecorator(
       this.litNodeStyle,
       new WebGLShapeNodeStyle(WebGLShapeNodeShape.ROUND_RECTANGLE, fill, fill)
@@ -437,9 +436,9 @@ class LargeGraphDemoConfiguration extends DemoConfiguration {
   }
   async applyHierarchicLayout(graphComponent) {
     const layout = new HierarchicLayout()
-    layout.minimumLayerDistance = 100 // Vertical spacing
+    layout.minimumLayerDistance = 100 
     layout.nodeLayoutDescriptor = new NodeLayoutDescriptor()
-    layout.nodeLayoutDescriptor.minimumNodeDistance = 100 // Horizontal spacing
+    layout.nodeLayoutDescriptor.minimumNodeDistance = 100
 
     const layoutData = new HierarchicLayoutData()
 
